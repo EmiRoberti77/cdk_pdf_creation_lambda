@@ -2,10 +2,12 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { HTTP_CODE, HTTP_METHOD, jsonApiProxyResultResponse } from "../util";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { SESService } from "../../ses_service";
 export interface PDFRequest {
   bucketName: string;
   filename: string;
   body: string;
+  sendEmail: boolean;
 }
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -23,24 +25,44 @@ export const handler = async (
       message: "Error:missing body",
     });
   }
-  const pdfRequest: PDFRequest = JSON.parse(event.body);
-  const bucketName = pdfRequest.bucketName;
-  const fileName = pdfRequest.filename;
-  const pdfBytes = await createPdf(pdfRequest.body);
-  const params = {
-    Bucket: bucketName,
-    Key: fileName,
-    Body: pdfBytes,
-    ContentType: "application/pdf",
-  };
-  const s3Client = new S3Client({ region: "us-east-1" });
-  const response = await s3Client.send(new PutObjectCommand(params));
-  return jsonApiProxyResultResponse(HTTP_CODE.OK, {
-    success: true,
-    body: {
-      fileUrl: fileUrl(bucketName, fileName),
-    },
-  });
+  try {
+    const pdfRequest: PDFRequest = JSON.parse(event.body);
+    const bucketName = pdfRequest.bucketName;
+    const fileName = pdfRequest.filename;
+    const pdfBytes = await createPdf(pdfRequest.body);
+    const params = {
+      Bucket: bucketName,
+      Key: fileName,
+      Body: pdfBytes,
+      ContentType: "application/pdf",
+    };
+    const s3Client = new S3Client({ region: "us-east-1" });
+    const response = await s3Client.send(new PutObjectCommand(params));
+    let emailSent = false;
+    const pdfUrl = fileUrl(bucketName, fileName);
+    if (pdfRequest.sendEmail) {
+      const sesService = new SESService({
+        subjectData: "Rooms Checkout Report",
+        bodyData: `${pdfUrl}`,
+        source: "emiroberti@icloud.com",
+        toAddresses: ["emiroberti@icloud.com"],
+      });
+      emailSent = await sesService.sendEmail();
+    }
+
+    return jsonApiProxyResultResponse(HTTP_CODE.OK, {
+      success: true,
+      task: {
+        emailSent,
+        fileUrl: pdfUrl,
+      },
+    });
+  } catch (err: any) {
+    return jsonApiProxyResultResponse(HTTP_CODE.OK, {
+      success: false,
+      body: err.message,
+    });
+  }
 };
 
 const fileUrl = (bucketName: string, fileName: string) => {
