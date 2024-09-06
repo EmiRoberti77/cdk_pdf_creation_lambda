@@ -1,8 +1,53 @@
-# Welcome to your CDK TypeScript project
+# PDF Generator Lambda Function
 
-This is a blank project for CDK development with TypeScript.
+This AWS Lambda function generates a PDF file based on a request body and uploads it to an S3 bucket. The function expects a POST request with a JSON body containing the target S3 bucket name, file name, and the content for the PDF.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Setup](#setup)
+- [Functionality](#functionality)
+- [API Endpoint](#api-endpoint)
+- [Request Example](#request-example)
+- [Response Example](#response-example)
+- [Error Handling](#error-handling)
+
+## Requirements
+
+Ensure you have the following installed:
+
+- AWS SDK v3 (`@aws-sdk/client-s3`)
+- pdf-lib (`pdf-lib`)
+- Node.js (v14 or above)
+
+## Setup
+
+1. Install the dependencies:
+
+   ```bash
+   npm install @aws-sdk/client-s3 pdf-lib
+   ```
+Functionality
+
+The Lambda function works as follows:
+
+	1.	Request Validation:
+	•	The function only accepts POST requests. If a non-POST request is sent, it returns a 404 error with a message stating that the method must be POST.
+	•	The function expects a request body containing a JSON object with the bucketName, filename, and body fields. If the request body is missing, it returns a 404 error with a message stating that the body is missing.
+	2.	PDF Generation:
+	•	The createPdf function generates a PDF with the provided body text.
+	•	The PDF is generated using the pdf-lib library and uses the Times New Roman font with text color in RGB.
+	3.	Uploading to S3:
+	•	The generated PDF is uploaded to the specified S3 bucket with the specified file name.
+	•	The function returns a success response containing the URL of the uploaded file in S3.
+
+```json
+{
+  "bucketName": "your-s3-bucket-name",
+  "filename": "your-pdf-file-name.pdf",
+  "body": "Text content to include in the PDF"
+}
+```
 
 ## Useful commands
 
