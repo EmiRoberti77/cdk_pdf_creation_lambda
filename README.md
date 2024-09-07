@@ -27,33 +27,45 @@ Ensure you have the following installed:
    ```bash
    npm install @aws-sdk/client-s3 pdf-lib
    ```
-Functionality
+
+   Functionality
 
 The Lambda function works as follows:
 
-	1.	Request Validation:
-	•	The function only accepts POST requests. If a non-POST request is sent, it returns a 404 error with a message stating that the method must be POST.
-	•	The function expects a request body containing a JSON object with the bucketName, filename, and body fields. If the request body is missing, it returns a 404 error with a message stating that the body is missing.
-	2.	PDF Generation:
-	•	The createPdf function generates a PDF with the provided body text.
-	•	The PDF is generated using the pdf-lib library and uses the Times New Roman font with text color in RGB.
-	3.	Uploading to S3:
-	•	The generated PDF is uploaded to the specified S3 bucket with the specified file name.
-	•	The function returns a success response containing the URL of the uploaded file in S3.
+    1.	Request Validation:
+    •	The function only accepts POST requests. If a non-POST request is sent, it returns a 404 error with a message stating that the method must be POST.
+    •	The function expects a request body containing a JSON object with the bucketName, filename, and body fields. If the request body is missing, it returns a 404 error with a message stating that the body is missing.
+    2.	PDF Generation:
+    •	The createPdf function generates a PDF with the provided body text.
+    •	The PDF is generated using the pdf-lib library and uses the Times New Roman font with text color in RGB.
+    3.	Uploading to S3:
+    •	The generated PDF is uploaded to the specified S3 bucket with the specified file name.
+    •	The function returns a success response containing the URL of the uploaded file in S3.
 
 ```json
 {
-  "bucketName": "your-s3-bucket-name",
-  "filename": "your-pdf-file-name.pdf",
-  "body": "Text content to include in the PDF"
+  "bucketName": "emibucketai",
+  "filename": "emi_pdf.pdf",
+  "documentBody": "Room 123 checkout report",
+  "sendEmail": true,
+  "toAddresses": ["emiroberti@icloud.com"],
+  "fromAddress": "emiroberti@icloud.com",
+  "emailSubject": "Room checkout report",
+  "emailBody": "Room 123 check out report [site 1]"
 }
 ```
 
+# Dependencies
+
+- AWS SDK v3: To interact with AWS S3 and SES.
+- pdf-lib: To generate PDFs programmatically.
+- AJV: JSON Schema Validator to ensure the request payload is valid.
+
 ## Useful commands
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+- `npm run build` compile typescript to js
+- `npm run watch` watch for changes and compile
+- `npm run test` perform the jest unit tests
+- `npx cdk deploy` deploy this stack to your default AWS account/region
+- `npx cdk diff` compare deployed stack with current state
+- `npx cdk synth` emits the synthesized CloudFormation template
