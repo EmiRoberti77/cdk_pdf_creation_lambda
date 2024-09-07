@@ -30,7 +30,7 @@ Ensure you have the following installed:
 
    Functionality
 
-The Lambda function works as follows:
+# The Lambda function works as follows:
 
 1. Request Validation:
    • The function only accepts POST requests. If a non-POST request is sent, it returns a 404 error with a message stating that the method must be POST.
