@@ -32,15 +32,15 @@ Ensure you have the following installed:
 
 The Lambda function works as follows:
 
-    1.	Request Validation:
-    •	The function only accepts POST requests. If a non-POST request is sent, it returns a 404 error with a message stating that the method must be POST.
-    •	The function expects a request body containing a JSON object with the bucketName, filename, and body fields. If the request body is missing, it returns a 404 error with a message stating that the body is missing.
-    2.	PDF Generation:
-    •	The createPdf function generates a PDF with the provided body text.
-    •	The PDF is generated using the pdf-lib library and uses the Times New Roman font with text color in RGB.
-    3.	Uploading to S3:
-    •	The generated PDF is uploaded to the specified S3 bucket with the specified file name.
-    •	The function returns a success response containing the URL of the uploaded file in S3.
+1. Request Validation:
+   • The function only accepts POST requests. If a non-POST request is sent, it returns a 404 error with a message stating that the method must be POST.
+   • The function expects a request body containing a JSON object with the bucketName, filename, and body fields. If the request body is missing, it returns a 404 error with a message stating that the body is missing.
+2. PDF Generation:
+   • The createPdf function generates a PDF with the provided body text.
+   • The PDF is generated using the pdf-lib library and uses the Times New Roman font with text color in RGB.
+3. Uploading to S3:
+   • The generated PDF is uploaded to the specified S3 bucket with the specified file name.
+   • The function returns a success response containing the URL of the uploaded file in S3.
 
 ```json
 {
