@@ -25,7 +25,7 @@ Ensure you have the following installed:
 1. Install the dependencies:
 
    ```bash
-   npm install @aws-sdk/client-s3 pdf-lib
+   npm install @aws-sdk/client-s3 pdf-lib ajv
    ```
 
    Functionality
