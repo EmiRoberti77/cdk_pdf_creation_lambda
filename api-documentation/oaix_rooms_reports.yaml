@@ -1,0 +1,150 @@
+openapi: 3.1.0
+info:
+  title: PDF Generation API
+  description: This API generates a PDF based on provided data and uploads it to S3. Optionally, the PDF can be sent via email.
+  version: 1.0.0
+servers:
+  - url: https://cc25mtmyo5.execute-api.us-east-1.amazonaws.com/prod
+paths:
+  /pdf:
+    post:
+      summary: Generate a PDF and optionally send it via email
+      description: Generates a PDF document, uploads it to an S3 bucket, and optionally sends the PDF via email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bucketName:
+                  type: string
+                  description: Name of the S3 bucket where the PDF will be uploaded.
+                  example: emibucketai
+                filename:
+                  type: string
+                  description: The name of the PDF file.
+                  example: emi_pdf.pdf
+                documentBody:
+                  type: string
+                  description: The content that will appear inside the PDF.
+                  example: Room 123 checkout report
+                sendEmail:
+                  type: boolean
+                  description: Whether to send the PDF via email.
+                  example: true
+                toAddresses:
+                  type: array
+                  items:
+                    type: string
+                  description: A list of recipient email addresses.
+                  example: ["emiroberti@icloud.com"]
+                fromAddress:
+                  type: string
+                  description: The email address from which the PDF will be sent.
+                  example: emiroberti@icloud.com
+                emailSubject:
+                  type: string
+                  description: The subject of the email if `sendEmail` is true.
+                  example: Room checkout report
+                emailBody:
+                  type: string
+                  description: The body of the email if `sendEmail` is true.
+                  example: Room 123 check out report [site 1]
+              required:
+                - bucketName
+                - filename
+                - documentBody
+                - sendEmail
+                - toAddresses
+                - fromAddress
+                - emailSubject
+                - emailBody
+      responses:
+        "200":
+          description: PDF generated and uploaded to S3. Optionally sent via email.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates whether the request was successful.
+                    example: true
+                  report:
+                    type: object
+                    properties:
+                      dateTime:
+                        type: string
+                        format: date-time
+                        description: The time the report was generated.
+                        example: 2024-09-07T11:23:44.926Z
+                      fileUrl:
+                        type: string
+                        description: The URL of the PDF in the S3 bucket.
+                        example: https://emibucketai.s3.amazonaws.com/emi_pdf.pdf
+                      emailSent:
+                        type: boolean
+                        description: Whether the email was successfully sent.
+                        example: true
+                      toAddresses:
+                        type: array
+                        items:
+                          type: string
+                        description: List of email addresses to which the PDF was sent.
+                        example: ["emiroberti@icloud.com"]
+        "400":
+          description: Bad request. The input was invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    description: The error message explaining what went wrong.
+                    example: Invalid input data
+        "500":
+          description: Internal server error. There was an issue generating the PDF or sending the email.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    description: The error message.
+                    example: Server error while generating PDF
+components:
+  schemas:
+    ReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful.
+        report:
+          type: object
+          properties:
+            dateTime:
+              type: string
+              format: date-time
+              description: The date and time of the report.
+            fileUrl:
+              type: string
+              description: The URL of the uploaded PDF.
+            emailSent:
+              type: boolean
+              description: Whether the email was sent.
+            toAddresses:
+              type: array
+              items:
+                type: string
+              description: List of email addresses where the PDF was sent.
