@@ -3,58 +3,71 @@ import { HTTP_CODE, HTTP_METHOD, jsonApiProxyResultResponse } from "../util";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { SESService } from "../../ses_service";
-export interface PDFRequest {
-  bucketName: string;
-  filename: string;
-  body: string;
-  sendEmail: boolean;
-}
+import { validateReportRequest } from "./jsonSchema";
+import { ReportParams } from "./model";
+import {
+  APPLICATION_JSON,
+  ERR_HTTP_METHOD_NOT_POST,
+  ERR_MISSING_BODY,
+  HTTPS,
+  REGION,
+  S3_AMAZON_AWS,
+} from "../../constants";
+
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   if (event.httpMethod !== HTTP_METHOD.POST) {
     return jsonApiProxyResultResponse(HTTP_CODE.NOT_FOUND, {
       success: false,
-      message: "Error:httpMethod must be POST",
+      message: ERR_HTTP_METHOD_NOT_POST,
     });
   }
-  console.log(event);
   if (!event.body) {
     return jsonApiProxyResultResponse(HTTP_CODE.NOT_FOUND, {
       success: false,
-      message: "Error:missing body",
+      message: ERR_MISSING_BODY,
     });
   }
   try {
-    const pdfRequest: PDFRequest = JSON.parse(event.body);
-    const bucketName = pdfRequest.bucketName;
-    const fileName = pdfRequest.filename;
-    const pdfBytes = await createPdf(pdfRequest.body);
+    const payload: any = JSON.parse(event.body);
+    if (!validateReportRequest(payload)) {
+      return jsonApiProxyResultResponse(HTTP_CODE.NOT_FOUND, {
+        success: false,
+        message: validateReportRequest.errors,
+      });
+    }
+    const report: ReportParams = payload;
+    const bucketName = report.bucketName;
+    const fileName = report.filename;
+    const pdfBytes = await createPdf(report.documentBody);
     const params = {
       Bucket: bucketName,
       Key: fileName,
       Body: pdfBytes,
-      ContentType: "application/pdf",
+      ContentType: APPLICATION_JSON,
     };
-    const s3Client = new S3Client({ region: "us-east-1" });
+    const s3Client = new S3Client({ region: REGION });
     const response = await s3Client.send(new PutObjectCommand(params));
     let emailSent = false;
     const pdfUrl = fileUrl(bucketName, fileName);
-    if (pdfRequest.sendEmail) {
+    if (report.sendEmail) {
       const sesService = new SESService({
-        subjectData: "Rooms Checkout Report",
-        bodyData: `${pdfUrl}`,
-        source: "emiroberti@icloud.com",
-        toAddresses: ["emiroberti@icloud.com"],
+        subjectData: report.emailSubject,
+        bodyData: `${report.emailBody}, ${pdfUrl}`,
+        source: report.fromAddress,
+        toAddresses: report.toAddresses,
       });
       emailSent = await sesService.sendEmail();
     }
 
     return jsonApiProxyResultResponse(HTTP_CODE.OK, {
       success: true,
-      task: {
-        emailSent,
+      report: {
+        dateTime: new Date().toISOString(),
         fileUrl: pdfUrl,
+        emailSent,
+        toAdresses: report.toAddresses,
       },
     });
   } catch (err: any) {
@@ -66,7 +79,7 @@ export const handler = async (
 };
 
 const fileUrl = (bucketName: string, fileName: string) => {
-  return `https://${bucketName}.s3.amazonaws.com/${fileName}`;
+  return `${HTTPS}${bucketName}${S3_AMAZON_AWS}${fileName}`;
 };
 
 const createPdf = async (body: string): Promise<Uint8Array> => {
