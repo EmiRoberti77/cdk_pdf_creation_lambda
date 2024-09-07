@@ -10,7 +10,6 @@ This AWS Lambda function generates a PDF file based on a request body and upload
 - [API Endpoint](#api-endpoint)
 - [Request Example](#request-example)
 - [Response Example](#response-example)
-- [Error Handling](#error-handling)
 
 ## Requirements
 
