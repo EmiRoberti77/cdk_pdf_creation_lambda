@@ -18,7 +18,7 @@ Ensure you have the following installed:
 
 - AWS SDK v3 (`@aws-sdk/client-s3`)
 - pdf-lib (`pdf-lib`)
-- Node.js (v14 or above)
+- Node.js (v20 or above)
 
 ## Setup
 
