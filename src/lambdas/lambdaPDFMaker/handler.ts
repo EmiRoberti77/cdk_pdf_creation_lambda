@@ -1,10 +1,10 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { HTTP_CODE, HTTP_METHOD, jsonApiProxyResultResponse } from "../util";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { SESService } from "../../ses_service";
-import { validateReportRequest } from "./jsonSchema";
-import { ReportParams } from "./model";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { HTTP_CODE, HTTP_METHOD, jsonApiProxyResultResponse } from '../util';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { SESService } from '../../ses_service';
+import { validateReportRequest } from './jsonSchema';
+import { ReportItem, ReportParams } from './model';
 import {
   APPLICATION_JSON,
   ERR_HTTP_METHOD_NOT_POST,
@@ -12,7 +12,7 @@ import {
   HTTPS,
   REGION,
   S3_AMAZON_AWS,
-} from "../../constants";
+} from '../../constants';
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -40,7 +40,7 @@ export const handler = async (
     const report: ReportParams = payload;
     const bucketName = report.bucketName;
     const fileName = report.filename;
-    const pdfBytes = await createPdf(report.documentBody);
+    const pdfBytes = await createPdf('Apartment Report', report.documentBody);
     const params = {
       Bucket: bucketName,
       Key: fileName,
@@ -82,19 +82,93 @@ const fileUrl = (bucketName: string, fileName: string) => {
   return `${HTTPS}${bucketName}${S3_AMAZON_AWS}${fileName}`;
 };
 
-const createPdf = async (body: string): Promise<Uint8Array> => {
+const createPdf = async (
+  title: string,
+  body: ReportItem[]
+): Promise<Uint8Array> => {
   const pdfDoc = await PDFDocument.create();
   const timesNewRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+
+  // Create a page in the PDF
   const page = pdfDoc.addPage();
   const { width, height } = page.getSize();
-  const fontSize = 30;
-  page.drawText(body, {
+
+  let fontSize = 30;
+  let yPosition = height - 50; // Start position for content
+
+  // Draw the title at the top
+  page.drawText(title, {
     x: 50,
-    y: height - 4 * fontSize,
+    y: yPosition,
     size: fontSize,
     font: timesNewRomanFont,
     color: rgb(0, 0.53, 0.71),
   });
+
+  // Reduce y position to make space for the description
+  fontSize = 14;
+  yPosition -= 2 * fontSize;
+
+  // Iterate through the body array to add each report item
+  body.forEach((item) => {
+    // Draw the report title
+    page.drawText(item.title, {
+      x: 50,
+      y: yPosition,
+      size: fontSize,
+      font: timesNewRomanFont,
+      color: rgb(0, 0.53, 0.71),
+    });
+
+    // Reduce y position for the description
+    yPosition -= 1.5 * fontSize;
+
+    // Draw the description
+    page.drawText(item.description, {
+      x: 50,
+      y: yPosition,
+      size: 12,
+      font: timesNewRomanFont,
+      color: rgb(0, 0, 0),
+    });
+
+    // Reduce y position for labels
+    yPosition -= 2 * fontSize;
+
+    // Draw table headers for the labels
+    page.drawText('Labels:', {
+      x: 50,
+      y: yPosition,
+      size: 12,
+      font: timesNewRomanFont,
+      color: rgb(0, 0, 0),
+    });
+
+    // Move down for table content
+    yPosition -= 1.5 * fontSize;
+
+    // Create a simple table for labels
+    const labelColumnWidth = 150;
+    item.labels.forEach((label, index) => {
+      page.drawText(label, {
+        x: 50 + (index % 3) * labelColumnWidth, // Distribute labels in columns
+        y: yPosition,
+        size: 11,
+        font: timesNewRomanFont,
+        color: rgb(0, 0, 0),
+      });
+
+      // If 3 labels per row, go to the next line
+      if ((index + 1) % 3 === 0) {
+        yPosition -= 1.5 * fontSize; // Move to the next row
+      }
+    });
+
+    // Add some space between items
+    yPosition -= 3 * fontSize;
+  });
+
+  // Save the PDF and return as Uint8Array
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
 };
