@@ -17,6 +17,7 @@ import {
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  console.log(event.body);
   if (event.httpMethod !== HTTP_METHOD.POST) {
     return jsonApiProxyResultResponse(HTTP_CODE.NOT_FOUND, {
       success: false,
