@@ -1,6 +1,17 @@
 import Ajv, { JSONSchemaType } from 'ajv';
-import { ReportItem, ReportParams } from '../model';
+import { S3ImageRoomPath, ReportItem, ReportParams } from '../model';
 const ajv = new Ajv();
+const s3ImagePathsSchema: JSONSchemaType<S3ImageRoomPath> = {
+  type: 'object',
+  properties: {
+    url: { type: 'string' },
+    fileName: { type: 'string' },
+    bucket: { type: 'string' },
+    region: { type: 'string' },
+  },
+  required: ['url', 'bucket', 'fileName', 'region'],
+  additionalProperties: false,
+};
 const reportItemSchema: JSONSchemaType<ReportItem> = {
   type: 'object',
   properties: {
@@ -11,9 +22,15 @@ const reportItemSchema: JSONSchemaType<ReportItem> = {
       type: 'array',
       items: { type: 'string' },
     },
-    image: { type: 'object', nullable: true }, // Optional image field (can be any type or null)
+    image: { type: 'string', nullable: true },
+    s3ImageRoomPath: {
+      type: 'object',
+      properties: s3ImagePathsSchema.properties,
+      required: s3ImagePathsSchema.required,
+      additionalProperties: false,
+    },
   },
-  required: ['room', 'title', 'description', 'labels'],
+  required: ['room', 'title', 'description', 'labels', 's3ImageRoomPath'],
   additionalProperties: false,
 };
 

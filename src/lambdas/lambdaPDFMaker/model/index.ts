@@ -9,7 +9,14 @@ export interface ReportItem {
   title: string;
   description: string;
   labels: string[];
-  image?: any;
+  image?: string;
+  s3ImageRoomPath: S3ImageRoomPath;
+}
+export interface S3ImageRoomPath {
+  url: string;
+  fileName: string;
+  bucket: string;
+  region: string;
 }
 export interface SESParams {
   toAddresses: string[];

@@ -121,6 +121,16 @@ const createPdf = async (
       color: rgb(0, 0.53, 0.71),
     });
 
+    yPosition -= 1.5 * fontSize;
+
+    page.drawText(item.s3ImageRoomPath.fileName, {
+      x: 50,
+      y: yPosition,
+      size: fontSize,
+      font: timesNewRomanFont,
+      color: rgb(0, 0.53, 0.71),
+    });
+
     // Reduce y position for the description
     yPosition -= 1.5 * fontSize;
 
