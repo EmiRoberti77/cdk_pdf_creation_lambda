@@ -9,7 +9,7 @@ export interface ReportItem {
   title: string;
   description: string;
   labels: string[];
-  image?: string;
+  localImage?: string;
   s3ImageRoomPath: S3ImageRoomPath;
 }
 export interface S3ImageRoomPath {

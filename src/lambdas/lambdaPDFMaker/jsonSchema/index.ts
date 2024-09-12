@@ -22,7 +22,7 @@ const reportItemSchema: JSONSchemaType<ReportItem> = {
       type: 'array',
       items: { type: 'string' },
     },
-    image: { type: 'string', nullable: true },
+    localImage: { type: 'string', nullable: true },
     s3ImageRoomPath: {
       type: 'object',
       properties: s3ImagePathsSchema.properties,
