@@ -2,9 +2,9 @@ import {
   SESClient,
   SendEmailCommand,
   SendEmailCommandInput,
-} from "@aws-sdk/client-ses";
-import { SESServiceParams } from "./model/sesServiceParams";
-import { REGION } from "../constants";
+} from '@aws-sdk/client-ses';
+import { SESServiceParams } from './model/sesServiceParams';
+import { REGION } from '../constants';
 
 export class SESService {
   private sesClient: SESClient;
@@ -23,13 +23,13 @@ export class SESService {
         Message: {
           Body: {
             Html: {
-              Charset: "UTF-8",
+              Charset: 'UTF-8',
               Data: this.sesServiceParams.bodyData,
             },
           },
           Subject: {
             Data: this.sesServiceParams.subjectData,
-            Charset: "UTF-8",
+            Charset: 'UTF-8',
           },
         },
         Source: this.sesServiceParams.source,

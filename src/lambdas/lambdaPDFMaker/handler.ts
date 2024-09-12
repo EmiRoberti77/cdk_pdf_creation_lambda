@@ -1,6 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { HTTP_CODE, HTTP_METHOD, jsonApiProxyResultResponse } from '../util';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { SESService } from '../../ses_service';
 import { validateReportRequest } from './jsonSchema';
@@ -13,6 +17,8 @@ import {
   REGION,
   S3_AMAZON_AWS,
 } from '../../constants';
+import { PdfHandler } from './pdfHandler';
+import { S3Handler } from './s3Handler';
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -41,7 +47,8 @@ export const handler = async (
     const report: ReportParams = payload;
     const bucketName = report.bucketName;
     const fileName = report.filename;
-    const pdfBytes = await createPdf('Apartment Report', report.documentBody);
+    const pdfHandler = new PdfHandler('Apartment Report', report);
+    const pdfBytes = await pdfHandler.createPdf();
     const params = {
       Bucket: bucketName,
       Key: fileName,
@@ -50,6 +57,13 @@ export const handler = async (
     };
     const s3Client = new S3Client({ region: REGION });
     const response = await s3Client.send(new PutObjectCommand(params));
+    const s3Handler = new S3Handler();
+    const pdfSaved = await s3Handler.put({
+      Bucket: bucketName,
+      Key: fileName,
+      Body: pdfBytes,
+      ContentType: APPLICATION_JSON,
+    });
     let emailSent = false;
     const pdfUrl = fileUrl(bucketName, fileName);
     if (report.sendEmail) {
@@ -68,7 +82,7 @@ export const handler = async (
         dateTime: new Date().toISOString(),
         fileUrl: pdfUrl,
         emailSent,
-        toAdresses: report.toAddresses,
+        toAddresses: report.toAddresses,
       },
     });
   } catch (err: any) {
@@ -81,105 +95,4 @@ export const handler = async (
 
 const fileUrl = (bucketName: string, fileName: string) => {
   return `${HTTPS}${bucketName}${S3_AMAZON_AWS}${fileName}`;
-};
-
-const createPdf = async (
-  title: string,
-  body: ReportItem[]
-): Promise<Uint8Array> => {
-  const pdfDoc = await PDFDocument.create();
-  const timesNewRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-
-  // Create a page in the PDF
-  const page = pdfDoc.addPage();
-  const { width, height } = page.getSize();
-
-  let fontSize = 30;
-  let yPosition = height - 50; // Start position for content
-
-  // Draw the title at the top
-  page.drawText(title, {
-    x: 50,
-    y: yPosition,
-    size: fontSize,
-    font: timesNewRomanFont,
-    color: rgb(0, 0.53, 0.71),
-  });
-
-  // Reduce y position to make space for the description
-  fontSize = 14;
-  yPosition -= 2 * fontSize;
-
-  // Iterate through the body array to add each report item
-  body.forEach((item) => {
-    // Draw the report title
-    page.drawText(item.title, {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesNewRomanFont,
-      color: rgb(0, 0.53, 0.71),
-    });
-
-    yPosition -= 1.5 * fontSize;
-
-    page.drawText(item.s3ImageRoomPath.fileName, {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: timesNewRomanFont,
-      color: rgb(0, 0.53, 0.71),
-    });
-
-    // Reduce y position for the description
-    yPosition -= 1.5 * fontSize;
-
-    // Draw the description
-    page.drawText(item.description, {
-      x: 50,
-      y: yPosition,
-      size: 12,
-      font: timesNewRomanFont,
-      color: rgb(0, 0, 0),
-    });
-
-    // Reduce y position for labels
-    yPosition -= 2 * fontSize;
-
-    // Draw table headers for the labels
-    page.drawText('Labels:', {
-      x: 50,
-      y: yPosition,
-      size: 12,
-      font: timesNewRomanFont,
-      color: rgb(0, 0, 0),
-    });
-
-    // Move down for table content
-    yPosition -= 1.5 * fontSize;
-
-    // Create a simple table for labels
-    const labelColumnWidth = 150;
-    item.labels.forEach((label, index) => {
-      page.drawText(label, {
-        x: 50 + (index % 3) * labelColumnWidth, // Distribute labels in columns
-        y: yPosition,
-        size: 11,
-        font: timesNewRomanFont,
-        color: rgb(0, 0, 0),
-      });
-
-      // If 3 labels per row, go to the next line
-      if ((index + 1) % 3 === 0) {
-        yPosition -= 1.5 * fontSize; // Move to the next row
-      }
-    });
-
-    // Add some space between items
-    yPosition -= 3 * fontSize;
-  });
-
-  // Save the PDF and return as Uint8Array
-  const pdfBytes = await pdfDoc.save();
-  return Buffer.from(pdfBytes);
 };
