@@ -5,6 +5,7 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { REGION } from '../../../constants';
+import { Readable } from 'stream';
 
 export class S3Handler {
   private s3Client: S3Client;
@@ -36,7 +37,7 @@ export class S3Handler {
   }): Promise<Uint8Array | null> {
     try {
       const response = await this.s3Client.send(new GetObjectCommand(params));
-      const fileStream = response.Body as ReadableStream;
+      const fileStream = response.Body as Readable;
       const fileBytes = await this.streamToBuffer(fileStream);
       return fileBytes;
     } catch (err: any) {
@@ -45,20 +46,22 @@ export class S3Handler {
     }
   }
 
-  private async streamToBuffer(stream: ReadableStream): Promise<Uint8Array> {
-    const reader = stream.getReader();
-    const chunks = [];
+  private async streamToBuffer(stream: Readable): Promise<Uint8Array> {
+    return new Promise((resolve, rejects) => {
+      const chunks: Uint8Array[] = [];
 
-    let done, value;
-    while (!done) {
-      const result = await reader.read();
-      done = result.done;
-      value = result.value;
-      if (value) {
-        chunks.push(value);
-      }
-    }
+      stream.on('data', (chunk) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      });
 
-    return Buffer.concat(chunks);
+      stream.on('end', () => {
+        resolve(Buffer.concat(chunks));
+      });
+
+      stream.on('error', (err) => {
+        console.error(err);
+        rejects(err);
+      });
+    });
   }
 }

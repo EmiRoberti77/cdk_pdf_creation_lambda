@@ -1,5 +1,6 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { ReportItem, ReportParams } from '../model';
+import { S3Handler } from '../s3Handler';
 
 export class PdfHandler {
   private reportParams: ReportParams;
@@ -33,8 +34,7 @@ export class PdfHandler {
     fontSize = 14;
     yPosition -= 2 * fontSize;
 
-    // Iterate through the body array to add each report item
-    this.reportParams.documentBody.forEach((item) => {
+    for (const item of this.reportParams.documentBody) {
       // Draw the report title
       page.drawText(item.title, {
         x: 50,
@@ -43,6 +43,27 @@ export class PdfHandler {
         font: timesNewRomanFont,
         color: rgb(0, 0.53, 0.71),
       });
+
+      yPosition -= 1.5 * fontSize;
+
+      const s3Handler = new S3Handler();
+      const roomImage = await s3Handler.get({
+        Bucket: 'emibucketai',
+        Key: item.s3ImageRoomPath.fileName,
+      });
+
+      if (roomImage) {
+        const imageEmbed = await pdfDoc.embedJpg(roomImage);
+        const imageDims = imageEmbed.scale(0.5);
+        page.drawImage(imageEmbed, {
+          x: 50,
+          y: yPosition - imageDims.height,
+          height: imageDims.height,
+          width: imageDims.width,
+        });
+
+        yPosition -= imageDims.height + 20;
+      }
 
       yPosition -= 1.5 * fontSize;
 
@@ -100,7 +121,7 @@ export class PdfHandler {
 
       // Add some space between items
       yPosition -= 3 * fontSize;
-    });
+    }
 
     // Save the PDF and return as Uint8Array
     const pdfBytes = await pdfDoc.save();
