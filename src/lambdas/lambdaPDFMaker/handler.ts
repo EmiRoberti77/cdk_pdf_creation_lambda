@@ -48,6 +48,7 @@ export const handler = async (
     const bucketName = report.bucketName;
     const fileName = report.filename;
     const pdfHandler = new PdfHandler('Apartment Report', report);
+    await pdfHandler.initPdf();
     const pdfBytes = await pdfHandler.createPdf();
     const params = {
       Bucket: bucketName,
